@@ -15,10 +15,25 @@ import torch.nn as nn
 from evaluation.evaluate import qualitative_evaluation
 
 
-def contrastive_loss(logits):
+def contrastive_loss(logits, margin=0.2):
+    """
+    Contrastive loss con hard negative mining.
+    Penaliza si la similitud con un texto incorrecto (negativo) es mayor que la del positivo más un margen.
+    """
     batch_size = logits.shape[0]
-    labels = torch.arange(batch_size).to(logits.device)
-    loss = nn.CrossEntropyLoss()(logits, labels)
+    device = logits.device
+
+    # Scores correctos: diagonal
+    positive_scores = logits.diag()  # [B]
+
+    # Para cada imagen (fila), buscamos el texto más similar que no sea el correcto
+    negative_scores, _ = (logits - torch.eye(batch_size, device=device) * 1e9).max(dim=1)  # [B]
+
+    # Queremos que score positivo > negativo + margen
+    target = torch.ones_like(positive_scores)
+    loss_fn = nn.MarginRankingLoss(margin=margin)
+    loss = loss_fn(positive_scores, negative_scores, target)
+
     return loss
 
 def create_confusion_matrix(y_true, y_pred):
@@ -48,7 +63,7 @@ def train_model(model, train_loader, optimizer, device, epochs=5, tokenizer=None
 
             logits = model(image_features, reports)
 
-            loss = contrastive_loss(logits)
+            loss = contrastive_loss(logits, margin=0.2)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
