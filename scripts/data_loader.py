@@ -28,10 +28,11 @@ import glob
 
 
 # --- Configuración de rutas y parámetros ---
-DataDir = r'C:\Users\joelb\OneDrive\Escritorio\4t\TFG\data\CanRuti'
-npz_file_path_glcm = os.path.join(DataDir, 'ResNet18_slice_GLCM3D.npz')
-npz_file_path_intensity = os.path.join(DataDir, 'ResNet18_slice_intensity.npz')
-excel_meta_path = os.path.join(DataDir, '11112024_BDMetaData_CanRuti_RadDescriptors (1).xlsx')
+#DataDir = r'C:\Users\joelb\OneDrive\Escritorio\4t\TFG\data\CanRuti'
+#npz_file_path_glcm = os.path.join(DataDir, 'ResNet18_slice_GLCM3D.npz')
+#npz_file_path_intensity = os.path.join(DataDir, 'ResNet18_slice_intensity.npz')
+#excel_meta_path = os.path.join(DataDir, '11112024_BDMetaData_CanRuti_RadDescriptors (1).xlsx')
+
 
 # --- Carga de datos clínicos ---
 def LoadCanRutiClinicalData(excel_path, tokenizer):
@@ -64,7 +65,7 @@ def LoadCanRutiClinicalData(excel_path, tokenizer):
 
 # --- Tokenizador ---
 tokenizer = AutoTokenizer.from_pretrained("medicalai/ClinicalBERT")
-
+"""
 # --- Cargar textos clínicos tokenizados por paciente ---
 patient_id_to_text = LoadCanRutiClinicalData(
     excel_path=excel_meta_path,
@@ -130,7 +131,7 @@ train_patient_ids    = train_ids
 test_image_features = [patient_id_to_image[pid] for pid in test_ids]
 test_text_features  = [patient_id_to_text[pid] for pid in test_ids]
 test_patient_ids    = test_ids
-
+"""
 
 # --- Dataset y DataLoader ---
 class MultimodalDataset(Dataset):
@@ -147,15 +148,17 @@ class MultimodalDataset(Dataset):
         text_description = self.tokenized_texts[idx]
         patient_id = self.patient_ids[idx]
         return image_feature, text_description, patient_id
-
+"""
 train_dataset = MultimodalDataset(train_image_features, train_text_features, train_patient_ids)
 train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+"""
 
 
-def get_fold_data(k_folds=5, current_fold=0, batch_size=16):
+def get_fold_data(patient_id_to_image, patient_id_to_text, k_folds=5, current_fold=0, batch_size=16):
     """
     Devuelve train_loader y test_loader para el fold especificado.
     """
+
     assert 0 <= current_fold < k_folds, "Fold actual fuera de rango."
 
     kf = KFold(n_splits=k_folds, shuffle=True, random_state=42)
@@ -183,6 +186,7 @@ def get_fold_data(k_folds=5, current_fold=0, batch_size=16):
 
     return train_loader, test_loader, train_ids.tolist(), test_ids.tolist()
 
+
 def load_multi_hospital_data(hospital_dirs, tokenizer):
     patient_id_to_image_all = {}
     patient_id_to_text_all = {}
@@ -190,8 +194,8 @@ def load_multi_hospital_data(hospital_dirs, tokenizer):
     for hospital_dir in hospital_dirs:
         # --- Rutas locales de este hospital ---
         excel_path = glob.glob(os.path.join(hospital_dir, "*.xlsx"))[0]
-        npz_glcm = os.path.join(hospital_dir, 'MobileNetV2_slice_GLCM3D.npz')
-        npz_intensity = os.path.join(hospital_dir, 'MobileNetV2_slice_intensity.npz')
+        npz_glcm = os.path.join(hospital_dir, 'ResNet152_slice_GLCM3D.npz')
+        npz_intensity = os.path.join(hospital_dir, 'ResNet152_slice_intensity.npz')
 
         # --- Cargar metadatos clínicos ---
         df = pd.read_excel(excel_path)
