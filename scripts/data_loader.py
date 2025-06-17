@@ -194,8 +194,8 @@ def load_multi_hospital_data(hospital_dirs, tokenizer):
     for hospital_dir in hospital_dirs:
         # --- Rutas locales de este hospital ---
         excel_path = glob.glob(os.path.join(hospital_dir, "*.xlsx"))[0]
-        npz_glcm = os.path.join(hospital_dir, 'ResNet152_slice_GLCM3D.npz')
-        npz_intensity = os.path.join(hospital_dir, 'ResNet152_slice_intensity.npz')
+        npz_glcm = os.path.join(hospital_dir, 'MobileNetV2_slice_GLCM3D.npz')
+        npz_intensity = os.path.join(hospital_dir, 'MobileNetV2_slice_intensity.npz')
 
         # --- Cargar metadatos clínicos ---
         df = pd.read_excel(excel_path)
