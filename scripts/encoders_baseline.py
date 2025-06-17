@@ -6,7 +6,7 @@ from transformers import AutoTokenizer, AutoModel
 class AttentionLayer(nn.Module):
     def __init__(self, hidden_dim=768):
         super(AttentionLayer, self).__init__()
-        self.attention = nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=8, batch_first=True)
+        self.attention = nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=2, batch_first=True)
 
     def forward(self, word_embeddings):
         attn_output, attn_weights = self.attention(word_embeddings, word_embeddings, word_embeddings)
@@ -44,11 +44,11 @@ class TextEncoder(nn.Module):
 
 
 class CLIPMedical(nn.Module):
-    def __init__(self, feature_dim=512):
+    def __init__(self, feature_dim=512, image_feat_dim=2560):
         super(CLIPMedical, self).__init__()
         self.text_encoder = TextEncoder(feature_dim=feature_dim)
         self.image_projection = nn.Sequential(
-            nn.Linear(1024, feature_dim), 
+            nn.Linear(image_feat_dim, feature_dim),  # <-- Fix input dim here
             nn.ReLU(),
             nn.LayerNorm(feature_dim)
         )
@@ -58,20 +58,20 @@ class CLIPMedical(nn.Module):
         text_embeddings = self.text_encoder(texts)  # [B, seq_len, 512]
         image_embeddings = self.image_projection(image_features)  # [B, 512]
 
-        # Normalizar
+        # Normalize
         image_embeddings = image_embeddings / image_embeddings.norm(dim=1, keepdim=True)
         text_embeddings = text_embeddings / text_embeddings.norm(dim=2, keepdim=True)
 
-        # Expandir imagen para comparar con cada token
+        # Expand image embeddings for comparison with each token
         image_embeddings = image_embeddings.unsqueeze(1)  # [B, 1, 512]
 
-
-        # Expandimos para calcular cross entropy pairwise (imagen ↔ texto)
+        # Compute pairwise distance and logits
         logits_matrix = torch.cdist(
             image_embeddings.squeeze(1),  # [B, 512]
-            text_embeddings.mean(dim=1),  # [B, 512] baseline
-            p=2 
+            text_embeddings.mean(dim=1),  # [B, 512]
+            p=2
         )
         logits_matrix = -logits_matrix * torch.exp(self.temperature)
 
         return logits_matrix
+
